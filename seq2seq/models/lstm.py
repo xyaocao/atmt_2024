@@ -224,7 +224,9 @@ class LSTMDecoder(Seq2SeqDecoder):
         self.use_lexical_model = use_lexical_model
         if self.use_lexical_model:
             # __LEXICAL: Add parts of decoder architecture corresponding to the LEXICAL MODEL here
-            pass
+            # TODO: --------------------------------------------------------------------- CUT
+            self.lexical_projection = nn.Linear(embed_dim, embed_dim, bias=False)
+            self.lexical_final_projection = nn.Linear(embed_dim, len(dictionary))
             # TODO: --------------------------------------------------------------------- /CUT
 
     def forward(self, tgt_inputs, encoder_out, incremental_state=None):
@@ -292,7 +294,8 @@ class LSTMDecoder(Seq2SeqDecoder):
                 if self.use_lexical_model:
                     # __LEXICAL: Compute and collect LEXICAL MODEL context vectors here
                     # TODO: --------------------------------------------------------------------- CUT
-                    pass
+                    lexical_context = torch.tanh(torch.bmm(step_attn_weights.unsqueeze(dim=1), src_embeddings.transpose(0,1)).squeeze(dim=1))
+                    lexical_contexts.append(torch.tanh(self.lexical_projection(lexical_context)) + lexical_context)
                     # TODO: --------------------------------------------------------------------- /CUT
 
             input_feed = F.dropout(input_feed, p=self.dropout_out, training=self.training)
@@ -313,7 +316,10 @@ class LSTMDecoder(Seq2SeqDecoder):
 
         if self.use_lexical_model:
             # __LEXICAL: Incorporate the LEXICAL MODEL into the prediction of target tokens here
-            pass
+            # TODO: --------------------------------------------------------------------- CUT
+            lexical_contexts_output = torch.cat(lexical_contexts, dim=0).view(tgt_time_steps, batch_size, self.embed_dim)
+            lexical_contexts_output = lexical_contexts_output.transpose(0,1)
+            decoder_output += self.lexical_final_projection(lexical_contexts_output)
             # TODO: --------------------------------------------------------------------- /CUT
 
 
